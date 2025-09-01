@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Finance API Web Client</title>
+  <style>
+    body{font-family:system-ui,Arial,sans-serif;max-width:900px;margin:2rem auto;padding:0 1rem}
+    header{display:flex;justify-content:space-between;align-items:center}
+    section{border:1px solid #ddd;border-radius:12px;padding:1rem;margin:1rem 0}
+    input,select,button{padding:.5rem;margin:.25rem}
+    code,pre{background:#f7f7f7;padding:.5rem;border-radius:8px;display:block;overflow:auto}
+    .row{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+    .ok{color:green}.err{color:#b00}
+  </style>
+</head>
+<body>
+<header>
+  <h1>Finance API Web Client</h1>
+  <div id="authStatus">Not logged in</div>
+</header>
+
+<section id="login">
+  <h2>Login</h2>
+  <div class="row">
+    <input id="user" value="alice" placeholder="username"/>
+    <input id="pass" value="alice123" placeholder="password" type="password"/>
+    <button id="btnLogin">Login</button>
+  </div>
+  <pre id="loginOut"></pre>
+</section>
+
+<section>
+  <h2>Transactions</h2>
+  <div class="row">
+    <button id="btnList">List (limit=10)</button>
+    <label>Sort:
+      <select id="sort">
+        <option value="-date">-date</option>
+        <option value="date">date</option>
+        <option value="-amount">-amount</option>
+        <option value="amount">amount</option>
+        <option value="-category">-category</option>
+        <option value="category">category</option>
+      </select>
+    </label>
+  </div>
+  <pre id="listOut"></pre>
+
+  <div class="row">
+    <input id="txDate" type="date" />
+    <input id="txAmount" type="number" step="0.01" placeholder="amount"/>
+    <input id="txCat" placeholder="category" value="food"/>
+    <input id="txNote" placeholder="note" value="sandwich"/>
+    <button id="btnCreate">Create</button>
+  </div>
+  <pre id="createOut"></pre>
+</section>
+
+<section>
+  <h2>Upload receipt</h2>
+  <input id="file" type="file"/>
+  <button id="btnUpload">Upload</button>
+  <pre id="uploadOut"></pre>
+</section>
+
+<section>
+  <h2>Forecast</h2>
+  <div class="row">
+    <input id="paths" type="number" value="50000"/> n_paths
+    <input id="horizon" type="number" value="24"/> horizon_months
+    <input id="repeats" type="number" value="1"/> repeats
+    <button id="btnRun">Run forecast</button>
+  </div>
+  <pre id="forecastOut"></pre>
+</section>
+
+<script>
+const base = location.origin + "/api/v1";
+let token = null;
+
+function setAuth(status){ document.getElementById('authStatus').textContent = status; }
+
+async function api(path, opts={}){
+  opts.headers = opts.headers || {};
+  if(!(opts.body instanceof FormData)){
+    opts.headers['Content-Type'] = 'application/json';
+  }
+  if(token) opts.headers['Authorization'] = 'Bearer ' + token;
+  const res = await fetch(base + path, opts);
+  const text = await res.text();
+  try { return {status: res.status, json: JSON.parse(text)}; }
+  catch { return {status: res.status, json: text}; }
+}
+
+document.getElementById('btnLogin').onclick = async ()=>{
+  const u = document.getElementById('user').value;
+  const p = document.getElementById('pass').value;
+  const r = await api('/auth/login',{method:'POST', body: JSON.stringify({username:u,password:p})});
+  if(r.status===200){ token = r.json.access_token; setAuth('Logged in as '+u); }
+  document.getElementById('loginOut').textContent = JSON.stringify(r, null, 2);
+};
+
+document.getElementById('btnList').onclick = async ()=>{
+  const sort = document.getElementById('sort').value;
+  const r = await api(`/transactions?limit=10&offset=0&sort=${encodeURIComponent(sort)}`);
+  document.getElementById('listOut').textContent = JSON.stringify(r, null, 2);
+};
+
+document.getElementById('btnCreate').onclick = async ()=>{
+  const body = {
+    date: document.getElementById('txDate').value || new Date().toISOString().slice(0,10),
+    amount: parseFloat(document.getElementById('txAmount').value || "-23.50"),
+    category: document.getElementById('txCat').value || "misc",
+    note: document.getElementById('txNote').value || ""
+  };
+  const r = await api('/transactions',{method:'POST', body: JSON.stringify(body)});
+  document.getElementById('createOut').textContent = JSON.stringify(r, null, 2);
+};
+
+document.getElementById('btnUpload').onclick = async ()=>{
+  const f = document.getElementById('file').files[0];
+  if(!f){ alert('Pick a file'); return; }
+  const fd = new FormData(); fd.append('file', f);
+  const r = await fetch(base + '/uploads/receipts', {
+    method:'POST', headers: {'Authorization': 'Bearer ' + token}, body: fd
+  });
+  const t = await r.text();
+  try{ document.getElementById('uploadOut').textContent = JSON.stringify(JSON.parse(t), null, 2); }
+  catch{ document.getElementById('uploadOut').textContent = t; }
+};
+
+document.getElementById('btnRun').onclick = async ()=>{
+  const body = {
+    n_paths: parseInt(document.getElementById('paths').value||'50000',10),
+    horizon_months: parseInt(document.getElementById('horizon').value||'24',10),
+    repeats: parseInt(document.getElementById('repeats').value||'1',10)
+  };
+  const r = await api('/forecast/run',{method:'POST', body: JSON.stringify(body)});
+  if(r.status===200 && r.json.job_id){
+    const res = await api('/forecast/result/'+r.json.job_id);
+    document.getElementById('forecastOut').textContent = JSON.stringify(res, null, 2);
+  } else {
+    document.getElementById('forecastOut').textContent = JSON.stringify(r, null, 2);
+  }
+};
+</script>
+</body>
+</html>
