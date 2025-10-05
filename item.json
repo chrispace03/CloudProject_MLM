@@ -1,0 +1,23 @@
+{
+    "receipt_key":  {
+                        "S":  "receipts/n11099496/2025/10/04/7907c806-6742-485e-84fc-e3e3fbdc0732-test.txt"
+                    },
+    "amount":  {
+                   "N":  "12.34"
+               },
+    "content_type":  {
+                         "S":  "text/plain"
+                     },
+    "created_at":  {
+                       "S":  "2025-10-03T14:56:35.3852364Z"
+                   },
+    "pk":  {
+               "S":  "USER#n11099496"
+           },
+    "category":  {
+                     "S":  "demo"
+                 },
+    "sk":  {
+               "S":  "TX#659ce603-beb2-40e1-ac42-097f6d5c4a73"
+           }
+}

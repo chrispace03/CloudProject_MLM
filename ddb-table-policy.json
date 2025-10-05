@@ -1,0 +1,27 @@
+{
+    "Version":  "2012-10-17",
+    "Statement":  [
+                      {
+                          "Action":  [
+                                         "dynamodb:GetItem",
+                                         "dynamodb:PutItem",
+                                         "dynamodb:UpdateItem",
+                                         "dynamodb:Query"
+                                     ],
+                          "Condition":  {
+                                            "StringEquals":  {
+                                                                 "aws:PrincipalArn":  "arn:aws:iam::901444280953:role/AWSReservedSSO_CAB432-STUDENT_f2baa6a2ba3c79c9"
+                                                             }
+                                        },
+                          "Principal":  {
+                                            "AWS":  "arn:aws:iam::901444280953:root"
+                                        },
+                          "Resource":  [
+                                           "arn:aws:dynamodb:ap-southeast-2:901444280953:table/finance_transactions",
+                                           "arn:aws:dynamodb:ap-southeast-2:901444280953:table/finance_transactions/*"
+                                       ],
+                          "Effect":  "Allow",
+                          "Sid":  "AllowStudentRoleRW"
+                      }
+                  ]
+}
